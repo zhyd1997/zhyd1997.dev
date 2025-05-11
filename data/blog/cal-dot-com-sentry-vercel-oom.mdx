@@ -1,0 +1,149 @@
+---
+title: 'How I Helped the Cal.com Team Resolve a Sentry Integration That Crashed Vercel Builds'
+date: '2025-05-09'
+tags: ['cal.com', 'sentry', 'vercel']
+draft: false
+summary: 2 nights...
+---
+
+While contributing to [the Cal.com open source project](https://github.com/calcom/cal.com/pull/21108), I helped the team debug a serious issue: Vercel deployments were failing with Out-Of-Memory (OOM) errors. This was caused by how we integrated Sentry into the Next.js project.
+
+In this post, I’ll explain the problem, its root cause, and how we solved it by decoupling build-time instrumentation from release-time asset management.
+
+🚨 The Problem: OOM on Vercel
+
+Vercel builds were crashing with OOM.
+> Vercel’s build environment is capped at **2 CPUs** and **8 GB RAM**
+
+Attempts to fix it using:
+```js
+NODE_OPTIONS="--max-old-space-size=6144" // 75% of Vercel RAM
+```
+did not work
+
+The root cause was **oversized server-side output files** will exhaust CPU and RAM resources when generating source maps and be processed by Sentry.
+
+The larget file size under `.next` folder is 5.6 MB.
+
+------
+
+There're 3 runtimes for Nextjs: `nodejs`, `edge` and `client`.
+
+The `@sentry/nextjs` SDK provides a `withSentryConfig()` function, which wraps your `next.config.js` to inject:
+- Webpack plugins
+- Module rules
+- Debug ID handling
+- Runtime wrapping logic
+
+This logic applies to **all runtimes** and inflates the size of server-side bundles. In our case, some files became large enough to trigger OOM crashes during Vercel builds.
+
+------
+
+✅ The Fix
+
+We refactored the Sentry integration by splitting concerns between runtime instrumentation and release asset management.
+
+🔹 Step 1: Remove withSentryConfig() From next.config.js
+
+Before:
+```js
+// next.config.js
+const { withSentryConfig } = require('@sentry/nextjs');
+
+module.exports = withSentryConfig(nextConfig, {
+  // your config
+});
+```
+After
+```js
+module.exports = {
+  // plain Next.js config
+};
+```
+
+This prevents Sentry from modifying the Webpack config and drastically reduces memory usage during builds.
+
+We kept runtime Sentry setup (e.g., in `_app.tsx` and API routes) to continue error reporting.
+
+🔹 Step 2: Use @sentry/cli in a custom script
+
+Instead of letting the SDK manage releases, we handled them manually with sentry-cli.
+
+We created a script create-sentry-release.js and wired it to yarn sentry:release.
+
+```json
+# package.json
+{
+  "scripts": {
+    "sentry:release": "node scripts/create-sentry-release.js"
+  }
+}
+```
+
+```js
+// scripts/create-sentry-release.js
+const { execSync } = require("child_process");
+
+const CLIENT_FILES_PATH = ".next/static/chunks";
+
+try {
+  const release = execSync("git rev-parse HEAD").toString().trim();
+
+  execSync(`sentry-cli releases new ${release}`, { stdio: "inherit" });
+  execSync(`sentry-cli releases set-commits ${release} --auto`, { stdio: "inherit" });
+  execSync(`sentry-cli sourcemaps inject ${CLIENT_FILES_PATH}`, { stdio: "inherit" });
+  execSync(
+    `sentry-cli sourcemaps upload ${CLIENT_FILES_PATH} --validate --ext=js --ext=map --release=${release}`,
+    {
+      stdio: "inherit",
+      env: process.env,
+    }
+  );
+  execSync(`sentry-cli releases finalize ${release}`, { stdio: "inherit" });
+} catch (err) {
+  console.error("Sentry CLI execution failed:", err);
+  process.exit(1);
+}
+```
+
+This script:
+1. Gets the current Git SHA
+2. Creates a Sentry release
+3. Injects Debug IDs into the client files
+4. Uploads source maps with validation
+5. Finalizes the release
+
+All without touching the server or edge bundles.
+
+🔄 Final Build Flow
+
+```shell
+# Step 1: Build your app
+yarn build
+
+# Step 2: Release to Sentry (client-side only)
+yarn sentry:release
+```
+
+This kept our builds fast, stable, and under memory limits.
+
+----
+
+✅ Results
+
+| Metric         | Impact     | Status |
+|----------------|------------|--------|
+| Memory usage   | + ~3%        | 🔺     |
+| Build time     | + ~1 min     | 🔺     |
+| Disk usage     | + ~0%        | ✅     |
+
+
+💡 Takeaways
+- Avoid using `withSentryConfig()` on memory-constrained CI/CD environments and large Nextjs app codebase
+- Use `@sentry/cli` to manage releases manually
+- Split your `build` and `release` steps for better control and performance
+- Keep runtime error tracking without impacting the build phase
+
+------
+
+Let me know if you’re dealing with similar build crashes or Sentry integration issues—happy to help!
