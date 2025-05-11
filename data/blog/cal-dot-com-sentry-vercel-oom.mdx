@@ -3,7 +3,7 @@ title: 'How I Helped the Cal.com Team Resolve a Sentry Integration That Crashed 
 date: '2025-05-09'
 tags: ['cal.com', 'sentry', 'vercel']
 draft: false
-summary: 2 nights...
+summary: While helping the Cal.com team, I resolved a critical issue where Sentry’s Next.js integration caused Vercel builds to run out of memory. The root cause was the `withSentryConfig()` wrapper bloating server-side output during build. By removing it and replacing it with a lightweight `@sentry/cli` script for client-side source maps, we restored stable, fast, and memory-efficient builds—without losing Sentry’s error tracking.
 ---
 
 While contributing to [the Cal.com open source project](https://github.com/calcom/cal.com/pull/21108), I helped the team debug a serious issue: Vercel deployments were failing with Out-Of-Memory (OOM) errors. This was caused by how we integrated Sentry into the Next.js project.
