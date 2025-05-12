@@ -1,7 +1,7 @@
 ---
 title: 'How I Helped the Cal.com Team Resolve a Sentry Integration That Crashed Vercel Builds'
 date: '2025-05-09'
-tags: ['cal.com', 'sentry', 'vercel']
+tags: ["Cal.com", "Sentry", "Vercel", "Next.js"]
 draft: false
 summary: While helping the Cal.com team, I resolved a critical issue where Sentry’s Next.js integration caused Vercel builds to run out of memory. The root cause was the `withSentryConfig()` wrapper bloating server-side output during build. By removing it and replacing it with a lightweight `@sentry/cli` script for client-side source maps, we restored stable, fast, and memory-efficient builds—without losing Sentry’s error tracking.
 ---
@@ -43,7 +43,7 @@ This logic applies to **all runtimes** and inflates the size of server-side bund
 
 We refactored the Sentry integration by splitting concerns between runtime instrumentation and release asset management.
 
-🔹 Step 1: Remove withSentryConfig() From next.config.js
+🔹 Step 1: Remove `withSentryConfig()` From `next.config.js`
 
 Before:
 ```js
@@ -65,7 +65,7 @@ This prevents Sentry from modifying the Webpack config and drastically reduces m
 
 We kept runtime Sentry setup (e.g., in `_app.tsx` and API routes) to continue error reporting.
 
-🔹 Step 2: Use @sentry/cli in a custom script
+🔹 Step 2: Use `@sentry/cli` in a custom script
 
 Instead of letting the SDK manage releases, we handled them manually with sentry-cli.
 
