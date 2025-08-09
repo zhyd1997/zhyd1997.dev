@@ -1,0 +1,78 @@
+---
+title: 'Fixing Cal.com ESLint Pre-commit Hook Failure with Turborepo'
+date: '2025-08-09'
+tags: ["Cal.com", "ESLint", "Turborepo", "Next.js"]
+draft: false
+summary: "How I fixed the ESLint pre-commit hook failure in Cal.com with Turborepo in an hour."
+---
+
+While working on this [PR](https://github.com/calcom/cal.com/pull/22924), I ran into a tricky issue that blocked local development.
+In this post, I’ll share what happened, how I fixed it, and a couple of takeaways.
+
+🚨 The Problem: pre-commit hook failed, blocking local development
+
+During a [TypeScript upgrade](https://github.com/calcom/cal.com/pull/22861), the `eslint-config-next` package was also bumped from `v13` to `v15` accidentally,
+2 major upgrade versions,
+and then the [issue](https://github.com/calcom/cal.com/issues/22905) appeared when devs tried to commit their changes:
+
+```bash
+ESlint coudn't find the config `next` to extend from. Please check that the name of the config is correct.
+The config `next` was referenced from the config file in `path/to/cal.com/packages/config/eslint-preset.js`.
+```
+
+Even after [reverting the `eslint-config-next` upgrade](https://github.com/calcom/cal.com/pull/22903), the pre-commit hook [kept failing](https://github.com/calcom/cal.com/issues/22905#issuecomment-3157230242):
+> I took a fresh pull but still issue is reproducing for me.
+
+> Yes, the issue still persists
+
+✅ The Fix
+
+I spent half an hour with ChatGPT (o4-mini-high), Codex, Copilot, Gemini 2.5 Pro, and Claude Code—none of them gave a useful answer.
+
+- They all suggested installing `eslint-config-next`—but it was already installed.
+- They told me to check the extends field in `.eslintrc.js`—it was already set to `next`.
+- They suggested matching versions of `eslint-config-next `and `next`—but it's a Turborepo with multiple same packages using different versions.
+
+"Less is more," I thought.
+
+So I dug into the ESLint source code, traced the code that threw the error, and eventually found [the troubleshooting docs](https://eslint.org/docs/latest/use/troubleshooting/couldnt-find-the-config):
+
+> That package name is passed to the Node.js require(), ...
+
+Since I’m also using a Turborepo with a `.eslintrc.js` at the root, I checked this file:
+https://github.com/zhyd1997/velokit/blob/main/.eslintrc.js
+
+I gave it a try—and it worked.
+
+The original `.eslintrc.js` was:
+```javascript
+module.exports = require("./packages/config/eslint-preset");
+```
+
+This was last updated three years ago, the `require()` still works for it? I suspected it might be outdated after `yarn.lock` updated.
+
+I replaced it with:
+```javascript
+// This configuration only applies to the package manager root.
+/** @type {import("eslint").Linter.Config} */
+module.exports = {
+  extends: ["./packages/config/eslint-preset.js"],
+};
+```
+
+----
+
+✅ Results
+
+The pre-commit hook passed, and local development was back to normal.
+
+![CleanShot 2025-08-06 at 22 08 05](https://github.com/user-attachments/assets/71855050-d8b5-458e-b2f6-db79c4fb1ecb)
+
+
+💡 Takeaways
+- If AI fails to resolve the issue in the given time frame, try digging into the source code.
+- If you’re using a Turborepo, always follow the official best practice.
+
+------
+
+If you have a different approach, I’m open to hearing your thoughts.
