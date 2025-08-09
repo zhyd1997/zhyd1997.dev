@@ -7,9 +7,10 @@ summary: "How I fixed the ESLint pre-commit hook failure in Cal.com with Turbore
 ---
 
 While working on this [PR](https://github.com/calcom/cal.com/pull/22924), I ran into a tricky issue that blocked local development.
+
 In this post, I’ll share what happened, how I fixed it, and a couple of takeaways.
 
-🚨 The Problem: pre-commit hook failed, blocking local development
+## 🚨 The Problem: pre-commit hook failed, blocking local development
 
 During a [TypeScript upgrade](https://github.com/calcom/cal.com/pull/22861), the `eslint-config-next` package was also bumped from `v13` to `v15` accidentally,
 2 major upgrade versions,
@@ -25,12 +26,12 @@ Even after [reverting the `eslint-config-next` upgrade](https://github.com/calco
 
 > Yes, the issue still persists
 
-✅ The Fix
+## ✅ The Fix
 
 I spent half an hour with ChatGPT (o4-mini-high), Codex, Copilot, Gemini 2.5 Pro, and Claude Code—none of them gave a useful answer.
 
 - They all suggested installing `eslint-config-next`—but it was already installed.
-- They told me to check the extends field in `.eslintrc.js`—it was already set to `next`.
+- They told me to check the `extends` field in final eslint config—it was already set to `next`, no typo.
 - They suggested matching versions of `eslint-config-next `and `next`—but it's a Turborepo with multiple same packages using different versions.
 
 "Less is more," I thought.
@@ -62,14 +63,14 @@ module.exports = {
 
 ----
 
-✅ Results
+## ✅ Results
 
 The pre-commit hook passed, and local development was back to normal.
 
 ![CleanShot 2025-08-06 at 22 08 05](https://github.com/user-attachments/assets/71855050-d8b5-458e-b2f6-db79c4fb1ecb)
 
 
-💡 Takeaways
+## 💡 Takeaways
 - If AI fails to resolve the issue in the given time frame, try digging into the source code.
 - If you’re using a Turborepo, always follow the official best practice.
 

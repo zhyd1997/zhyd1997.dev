@@ -10,7 +10,7 @@ While contributing to [the Cal.com open source project](https://github.com/calco
 
 In this post, I’ll explain the problem, its root cause, and how we solved it by decoupling build-time instrumentation from release-time asset management.
 
-🚨 The Problem: OOM on Vercel
+## 🚨 The Problem: OOM on Vercel
 
 Vercel builds were crashing with OOM.
 > Vercel’s build environment is capped at **2 CPUs** and **8 GB RAM**
@@ -39,11 +39,11 @@ This logic applies to **all runtimes** and inflates the size of server-side bund
 
 ------
 
-✅ The Fix
+## ✅ The Fix
 
 We refactored the Sentry integration by splitting concerns between runtime instrumentation and release asset management.
 
-🔹 Step 1: Remove `withSentryConfig()` From `next.config.js`
+### 🔹 Step 1: Remove `withSentryConfig()` From `next.config.js`
 
 Before:
 ```js
@@ -65,7 +65,7 @@ This prevents Sentry from modifying the Webpack config and drastically reduces m
 
 We kept runtime Sentry setup (e.g., in `_app.tsx` and API routes) to continue error reporting.
 
-🔹 Step 2: Use `@sentry/cli` in a custom script
+### 🔹 Step 2: Use `@sentry/cli` in a custom script
 
 Instead of letting the SDK manage releases, we handled them manually with sentry-cli.
 
@@ -115,7 +115,7 @@ This script:
 
 All without touching the server or edge bundles.
 
-🔄 Final Build Flow
+### 🔄 Final Build Flow
 
 ```shell
 # Step 1: Build your app
@@ -129,7 +129,7 @@ This kept our builds fast, stable, and under memory limits.
 
 ----
 
-✅ Results
+## ✅ Results
 
 | Metric         | Impact     | Status |
 |----------------|------------|--------|
