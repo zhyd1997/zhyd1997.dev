@@ -6,7 +6,7 @@ draft: false
 summary: "How I fixed the ESLint pre-commit hook failure in Cal.com with Turborepo in an hour."
 ---
 
-While working on this [PR](https://github.com/calcom/cal.com/pull/22924), I ran into a tricky issue that blocked local development.
+While going through Cal.com's github issue list, I found a tricky problem that was blocking local development.
 
 In this post, I’ll share what happened, how I fixed it, and a couple of takeaways.
 
@@ -60,6 +60,8 @@ module.exports = {
   extends: ["./packages/config/eslint-preset.js"],
 };
 ```
+
+Here is the [PR](https://github.com/calcom/cal.com/pull/22924)
 
 ----
 
