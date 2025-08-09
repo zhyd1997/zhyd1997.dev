@@ -12,14 +12,12 @@ const projectsData: Project[] = [
     imgSrc: 'https://ik.imagekit.io/1winv85cn8g/SoftMaple/logo.png',
     href: 'https://github.com/softmaple/softmaple',
   },
-  // {
-  //   title: 'The Time Machine',
-  //   description: `Imagine being able to travel back in time or to the future. Simple turn the knob
-  //   to the desired date and press "Go". No more worrying about lost keys or
-  //   forgotten headphones with this simple yet affordable solution.`,
-  //   imgSrc: '/static/images/time-machine.jpg',
-  //   href: '/blog/the-time-machine',
-  // },
+  {
+    title: 'Velokit, A Modern Fullstack Starter Kit.',
+    description: `A modern fullstack starter kit powered by Next.js 15, Tailwind CSS v4, shadcn/ui, Prisma, and Supabase — perfect for building fast, scalable web apps.`,
+    imgSrc: 'https://ik.imagekit.io/1winv85cn8g/VeloKit/showcase.png?updatedAt=1749315265176',
+    href: 'https://github.com/zhyd1997/velokit',
+  },
 ]
 
 export default projectsData
