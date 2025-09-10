@@ -1,0 +1,112 @@
+---
+title: 'Fixing Next.js v14+ Build OOM on Vercel'
+date: '2025-09-10'
+tags: ["Next.js", "Vercel", "OOM", "Performance", "build-time"]
+draft: false
+summary: In March 2024, our Next.js project started failing to build on Vercel with out-of-memory (OOM) errors after we introduced the App Router. Traditional fixes like `NODE_OPTIONS` did not help, and debugging was difficult due to limited container memory and lack of tooling. By inspecting Next.js source code, tuning `experimental.cpus` and `webpackBuildWorker`, and disabling production source maps, we raised build success rates to around 80%—restoring stability to a complex, long-running project.
+---
+
+# Fixing Next.js v14+ Build OOM on Vercel
+
+Back in **March 2024**, we ran into a tricky problem while upgrading a long-running project to **Next.js v14 App Router**: our builds on Vercel started failing with an **out-of-memory (OOM) error**.  
+
+This post shares how the issue happened, what didn’t work, and the workaround that eventually improved our build success rate to about **80%**.
+
+---
+
+## How We Got Here
+
+The project originally launched years ago using:
+
+- **Next.js Page Router** + **Material UI (MUI)**  
+- **Supabase** for authentication & data  
+- A fairly large codebase with default exports everywhere  
+
+In early 2024, new product requirements came in:  
+
+- **PWA support**  
+- **AI features**  
+- **Mobile-first design**  
+
+Since **Next.js App Router** had just shipped with noticeable performance improvements, we decided to adopt it — without removing the existing Page Router. At the same time, we introduced:  
+
+- **Tailwind CSS** and **shadcn/ui**  
+- PostgreSQL hosted on **AWS** (accessed via Next.js Actions using `pg` library)
+- A gradual shift from **default exports** to **named exports**  
+
+That’s when Vercel builds started failing with OOM errors.  
+
+---
+
+## Why OOM Was Hard to Debug
+
+A few things made this especially painful:
+
+1. **Vercel’s build containers** run on Amazon Linux with **limited memory**.  
+2. The project had grown **large and complex over several years**, making it hard to pinpoint a single root cause.  
+3. Unlike runtime OOM errors, where you can attach profiling or memory debugging tools, there’s **no mature tooling or platform (eg, Sentry) support** for diagnosing build-time OOMs.
+4. Standard tricks like tweaking `NODE_OPTIONS` (e.g. `--max-old-space-size`) didn’t help.  
+5. And to make matters worse, **Next.js docs didn’t cover this edge case well**.  
+
+At this point, the only option was to peek under the hood.  
+
+---
+
+## Diving Into Next.js Source Code
+
+Since our config used **webpack**, I checked how Next.js builds mixed Page + App Router setups.  
+
+That led me to this piece of code in Next.js:  
+
+👉 [config-shared.ts (line 261)](https://github.com/vercel/next.js/blob/c5dab314072857cfab6cd1c7a7fb5e8e7019f20c/packages/next/src/server/config-shared.ts#L261)
+
+Here, Next.js relies on **Jest Worker** for parallelized builds. By tuning `experimental.cpus` and `experimental.webpackBuildWorker`, we could control how aggressively the build process used worker threads.  
+
+```js
+// next.config.js
+const os = require("os");
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  experimental: {
+    // Reduce CPU concurrency to save memory
+    cpus: Math.max(1, (os.cpus?.().length ?? 4) - 1),
+    webpackBuildWorker: true,
+  },
+};
+
+module.exports = nextConfig;
+```
+
+This reduced memory pressure during builds and allowed them to complete more often, our build success rate climbed from near-zero to around 80% on Vercel. Not perfect, but a massive improvement.
+
+## Additional Tips
+
+- Disable Source Maps in Production
+If you don’t actually need source maps in production, turning them off can reduce memory usage significantly:
+
+```js
+// next.config.js
+module.exports = {
+  // existing config...
+  productionBrowserSourceMaps: false,
+};
+```
+
+----
+
+## Takeaways
+
+- Next.js upgrades (especially mixing Page + App Router) can expose hidden build bottlenecks.
+
+- Complex projects make it very hard to isolate the root cause of build-time OOM.
+
+- There’s currently no equivalent of runtime memory profiling tools for build-time crashes — making source code inspection almost the only way forward.
+
+- Vercel’s memory limits mean you sometimes need to optimize the build process itself, not just your code.
+
+- Don’t be afraid to dig into the Next.js source code — sometimes the fix isn’t documented yet.
+
+------
+
+👉 Have you faced similar OOM issues with Next.js builds? How did you solve them?
