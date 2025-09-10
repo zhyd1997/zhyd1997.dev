@@ -31,7 +31,7 @@ In early 2024, new product requirements came in:
 Since **Next.js App Router** had just shipped with noticeable performance improvements, we decided to adopt it — without removing the existing Page Router. At the same time, we introduced:  
 
 - **Tailwind CSS** and **shadcn/ui**  
-- PostgreSQL hosted on **AWS RDS** (accessed via Next.js Actions)  
+- PostgreSQL hosted on **AWS** (accessed via Next.js Actions using `pg` library)
 - A gradual shift from **default exports** to **named exports**  
 
 That’s when Vercel builds started failing with OOM errors.  
@@ -44,7 +44,7 @@ A few things made this especially painful:
 
 1. **Vercel’s build containers** run on Amazon Linux with **limited memory**.  
 2. The project had grown **large and complex over several years**, making it hard to pinpoint a single root cause.  
-3. Unlike runtime OOM errors, where you can attach profiling or memory debugging tools, there’s **no mature tooling or platform support** for diagnosing build-time OOMs.  
+3. Unlike runtime OOM errors, where you can attach profiling or memory debugging tools, there’s **no mature tooling or platform (eg, Sentry) support** for diagnosing build-time OOMs.
 4. Standard tricks like tweaking `NODE_OPTIONS` (e.g. `--max-old-space-size`) didn’t help.  
 5. And to make matters worse, **Next.js docs didn’t cover this edge case well**.  
 
@@ -78,7 +78,7 @@ const nextConfig = {
 module.exports = nextConfig;
 ```
 
-This reduced memory pressure during builds and allowed them to complete more often.
+This reduced memory pressure during builds and allowed them to complete more often, our build success rate climbed from near-zero to around 80% on Vercel. Not perfect, but a massive improvement.
 
 ## Additional Tips
 
@@ -87,18 +87,11 @@ If you don’t actually need source maps in production, turning them off can red
 
 ```js
 // next.config.js
-const os = require("os");
 module.exports = {
-  experimental: {
-    cpus: Math.max(1, (os.cpus?.().length ?? 4) - 1),
-    webpackBuildWorker: true,
-  },
+  // existing config...
   productionBrowserSourceMaps: false,
 };
 ```
-
-- Monitor Success Rate
-After these changes, our build success rate climbed from near-zero to around 80% on Vercel. Not perfect, but a massive improvement.
 
 ----
 
