@@ -31,7 +31,7 @@ In early 2024, new product requirements came in:
 Since **Next.js App Router** had just shipped with noticeable performance improvements, we decided to adopt it — without removing the existing Page Router. At the same time, we introduced:  
 
 - **Tailwind CSS** and **shadcn/ui**  
-- PostgreSQL hosted on **AWS** (accessed via Next.js Actions using `pg` library)
+- PostgreSQL hosted on **AWS** (accessed via Next.js Actions using `pg` library and AWS js sdk)
 - A gradual shift from **default exports** to **named exports**  
 
 That’s when Vercel builds started failing with OOM errors.  
@@ -58,9 +58,9 @@ Since our config used **webpack**, I checked how Next.js builds mixed Page + App
 
 That led me to this piece of code in Next.js:  
 
-👉 [config-shared.ts (line 261)](https://github.com/vercel/next.js/blob/c5dab314072857cfab6cd1c7a7fb5e8e7019f20c/packages/next/src/server/config-shared.ts#L261)
+👉 [config-shared.ts (line 287)](https://github.com/vercel/next.js/blob/c5dab314072857cfab6cd1c7a7fb5e8e7019f20c/packages/next/src/server/config-shared.ts#L287)
 
-Here, Next.js relies on **Jest Worker** for parallelized builds. By tuning `experimental.cpus` and `experimental.webpackBuildWorker`, we could control how aggressively the build process used worker threads.  
+Meanwhile, Next.js relies on **Jest Worker** for parallelized builds. By tuning `experimental.cpus` and `experimental.webpackBuildWorker`, we could control how aggressively the build process used worker threads.  
 
 ```js
 // next.config.js
