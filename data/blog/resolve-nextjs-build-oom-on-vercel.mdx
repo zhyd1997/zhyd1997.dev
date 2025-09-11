@@ -93,6 +93,9 @@ module.exports = {
 };
 ```
 
+- Disable Linting and Type-Checking During Deploy Builds
+If your deployment environment (e.g., Vercel) has tight memory, skip ESLint and TypeScript checks during the build and run them separately in CI (e.g., GitHub Actions) to reduce build-time memory usage.
+
 ----
 
 ## Takeaways
