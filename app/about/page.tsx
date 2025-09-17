@@ -3,7 +3,7 @@ import { MDXLayoutRenderer } from 'pliny/mdx-components'
 import AuthorLayout from '@/layouts/AuthorLayout'
 import { coreContent } from 'pliny/utils/contentlayer'
 import { genPageMetadata } from 'app/seo'
-import CalReferralCard from '@/components/CalReferralCard'
+import { CalReferralCard } from '@/components/CalReferralCard'
 
 export const metadata = genPageMetadata({ title: 'About' })
 
