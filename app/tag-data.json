@@ -1,12 +1,12 @@
 {
-  "calcom": 2,
-  "eslint": 1,
-  "turborepo": 1,
   "nextjs": 3,
-  "sentry": 1,
   "vercel": 2,
   "oom": 1,
   "performance": 1,
   "build-time": 1,
+  "calcom": 2,
+  "eslint": 1,
+  "turborepo": 1,
+  "sentry": 1,
   "travel": 1
 }
