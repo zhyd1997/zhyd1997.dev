@@ -92,6 +92,15 @@ module.exports = () => {
         },
       ]
     },
+    async redirects() {
+      return [
+        {
+          source: '/chat/:path*',
+          destination: 'https://cal.com/zhyd1997/:path*',
+          permanent: true, // 308
+        },
+      ]
+    },
     webpack: (config, options) => {
       config.module.rules.push({
         test: /\.svg$/,
