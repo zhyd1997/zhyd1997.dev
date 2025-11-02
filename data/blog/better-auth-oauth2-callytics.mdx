@@ -60,7 +60,18 @@ The OAuth callback endpoint (`/api/auth/callback/:providerId`) is handled automa
 
 **3. Automatic Token Refresh**
 
-Better Auth includes a sophisticated auto-refresh mechanism. When the `expires_in` field is present in the token response (RFC 6749 compliant), the library intelligently:
+Better Auth includes a sophisticated auto-refresh mechanism. When the `expires_in` field is present in the token response (RFC 6749 compliant), the library automatically calculates the expiration time:
+
+```typescript
+if (data.expires_in) {
+  const now = new Date();
+  tokens.accessTokenExpiresAt = new Date(
+    now.getTime() + data.expires_in * 1000,
+  );
+}
+```
+
+With this expiration timestamp stored, Better Auth intelligently:
 
 - Monitors token expiration
 - Automatically refreshes access tokens before they expire
