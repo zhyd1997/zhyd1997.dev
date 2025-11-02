@@ -72,14 +72,14 @@ This means **no more manual token refresh logic**—it just works!
 
 ## 🔧 Fixing the Cal.com OAuth Token Expiration Issue
 
-While integrating Cal.com OAuth in Callytics, I discovered that users had to re-authenticate every 30 minutes. This was frustrating for the user experience.
+While integrating Cal.com OAuth in Callytics, I discovered that users had to manually re-authenticate every 30 minutes. This was frustrating for the user experience.
 
 After investigating, I found that Cal.com's OAuth token endpoint wasn't fully RFC 6749 compliant. It wasn't returning:
 
 - `token_type` (should be "bearer")
 - `expires_in` (token expiration time in seconds)
 
-Without `expires_in`, Better Auth (and other OAuth clients) couldn't determine when to refresh the token, leading to frequent re-authentication.
+Without `expires_in`, Better Auth (and other OAuth clients) couldn't determine when to refresh the token, leading to frequent manual re-authentication.
 
 ### The Fix: PR #24841
 
@@ -95,7 +95,7 @@ I submitted [PR #24841](https://github.com/calcom/cal.com/pull/24841) to fix thi
 
 - Better Auth can now properly detect token expiration
 - Automatic token refresh works seamlessly
-- No more re-authentication every 30 minutes!
+- No more manual re-authentication every 30 minutes!
 - Full RFC 6749 compliance
 
 ## 💡 Key Benefits of Better Auth's Generic OAuth Plugin
