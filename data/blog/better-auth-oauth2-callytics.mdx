@@ -34,7 +34,9 @@ When integrating Cal.com OAuth 2.0 in my [Callytics](https://callytics.vercel.ap
 
 Better Auth's Generic OAuth plugin allows you to integrate any OAuth 2.0 provider that follows the standard OAuth flow. Instead of manually implementing the OAuth flow, you simply configure the provider's endpoints and credentials.
 
-For providers that support OpenID Connect discovery, you can use the `discoveryUrl` option, which automatically fetches all necessary endpoints from the provider's `.well-known/openid-configuration` endpoint.
+The plugin supports two configuration methods:
+- **OpenID Connect Discovery**: Use `discoveryUrl` to automatically fetch endpoints from providers that support `.well-known/openid-configuration`
+- **Manual Configuration**: Specify `authorizationUrl`, `tokenUrl`, and `userInfoUrl` directly for providers like Cal.com that don't support discovery
 
 ### Key Features
 
@@ -168,7 +170,9 @@ export const auth = betterAuth({
       config: [
         {
           providerId: "calcom",
-          discoveryUrl: "https://app.cal.com/.well-known/openid-configuration",
+          authorizationUrl: "https://app.cal.com/oauth/authorize",
+          tokenUrl: "https://app.cal.com/oauth/token",
+          userInfoUrl: "https://app.cal.com/api/v2/me",
           clientId: process.env.CALCOM_CLIENT_ID,
           clientSecret: process.env.CALCOM_CLIENT_SECRET,
           scopes: ["openid", "profile", "email"],
