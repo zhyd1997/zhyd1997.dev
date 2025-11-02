@@ -1,0 +1,253 @@
+---
+title: 'Better Auth OAuth 2.0 with Callytics: A Better DX for OAuth Integration'
+date: '2025-11-02'
+tags: ['Better Auth', 'OAuth 2.0', 'Callytics', 'Cal.com', 'Next.js']
+draft: false
+summary: 'How Better Auth simplifies OAuth 2.0 integration in Next.js, eliminating the pain of manual callback and refresh token logic—featuring my Cal.com OAuth integration in Callytics.'
+---
+
+In my previous work experience, integrating OAuth 2.0 for Meta (including Facebook and Instagram) and Outlook was a headache—requiring manual implementation of callbacks, token storage, and refresh token logic. Each integration meant hundreds of lines of boilerplate code and careful handling of edge cases.
+
+Recently, while building my [Callytics](https://callytics.vercel.app) project, I needed to integrate Cal.com's OAuth 2.0. Thanks to Better Auth's Generic OAuth plugin, what used to take days was reduced to a simple configuration—no manual callback handlers, no refresh token logic, just straightforward setup and it works.
+
+## 🚨 The Old Way: Manual OAuth Pain
+
+Previously, when integrating OAuth providers like Meta (Facebook/Instagram) and Outlook, I had to:
+
+- Manually handle OAuth callbacks
+- Write custom logic for access token acquisition
+- Implement refresh token mechanisms from scratch
+- Deal with token expiration edge cases
+
+This manual approach was:
+
+- **Time-consuming**: Days of development for each provider
+- **Error-prone**: Easy to miss edge cases in token handling
+- **Difficult to maintain**: Each provider had subtle differences
+- **Complex**: Required deep understanding of OAuth 2.0 specs and state management
+
+## ✅ The Better Auth Way: Generic OAuth Plugin
+
+When integrating Cal.com OAuth 2.0 in my [Callytics](https://callytics.vercel.app) project using Better Auth's Generic OAuth plugin, the experience was dramatically different.
+
+### What is the Generic OAuth Plugin?
+
+Better Auth's Generic OAuth plugin is a universal solution for integrating any OAuth 2.0 provider that follows the standard OAuth flow. Instead of writing custom implementation code, you simply provide the provider's configuration—endpoints and credentials—and Better Auth handles the rest.
+
+The plugin offers **two configuration approaches**:
+
+**1. OpenID Connect Discovery** (Recommended when supported)
+- Use `discoveryUrl` pointing to `.well-known/openid-configuration`
+- Automatically fetches all endpoint URLs
+- Works with providers like Google, Microsoft, Auth0
+
+**2. Manual Configuration** (For providers without OIDC Discovery)
+- Explicitly specify `authorizationUrl`, `tokenUrl`, and `userInfoUrl`
+- Required for providers like Cal.com that don't expose discovery endpoints
+- Gives you full control over each OAuth step
+
+### Key Features
+
+**1. Auto-Generated Database Schema**
+
+Better Auth automatically generates the necessary database schema for OAuth integration. When you initialize Better Auth, it creates all required tables:
+
+- **Users**: Core user accounts and profiles
+- **OAuth Accounts**: Provider-specific account data (provider ID, user ID, access tokens)
+- **Sessions**: Active user sessions with expiration tracking
+- **Account Linking**: Enables users to link multiple OAuth providers to one account
+
+No manual migrations, no schema design—it just works.
+
+**2. Automatic Callback Handling**
+
+The OAuth callback endpoint (`/api/auth/callback/:providerId`) is handled automatically by Better Auth—no custom route handlers needed. When the user returns from the provider's authorization page, the plugin:
+
+1. **Validates** the authorization code and state parameter
+2. **Exchanges** the authorization code for access and refresh tokens
+3. **Retrieves** user information from the provider's user info endpoint
+4. **Creates or links** the user account in your database
+5. **Establishes** an authenticated session
+
+All of this happens transparently—you don't write a single line of callback handling code.
+
+**3. Intelligent Automatic Token Refresh**
+
+Better Auth includes a sophisticated auto-refresh mechanism that monitors token expiration. When the OAuth provider returns an `expires_in` field (as specified in RFC 6749), Better Auth automatically calculates when the token will expire:
+
+```typescript
+if (data.expires_in) {
+  const now = new Date();
+  tokens.accessTokenExpiresAt = new Date(
+    now.getTime() + data.expires_in * 1000,
+  );
+}
+```
+
+With this expiration timestamp stored, Better Auth intelligently:
+
+- **Monitors** token expiration in the background
+- **Proactively refreshes** access tokens before they expire
+- **Handles** refresh token rotation (when providers issue new refresh tokens)
+- **Manages** error scenarios gracefully (e.g., revoked tokens, network failures)
+- **Stores** updated tokens securely in the database
+
+This means **no more manual token refresh logic**—Better Auth handles everything behind the scenes!
+
+## 🔧 Fixing the Cal.com OAuth Token Expiration Issue
+
+While integrating Cal.com OAuth in Callytics, I discovered a critical UX problem: users had to manually re-authenticate every 30 minutes. This was breaking the user experience—imagine losing your session in the middle of reviewing analytics!
+
+### The Investigation
+
+After diving into the Cal.com OAuth implementation and inspecting network requests, I found that Cal.com's OAuth token endpoint wasn't fully RFC 6749 compliant. The token response was missing two required fields:
+
+- `token_type`: Should be `"bearer"` to indicate the authentication scheme
+- `expires_in`: Token lifetime in seconds (critical for refresh logic)
+
+Without `expires_in`, Better Auth (and other OAuth clients like NextAuth.js) had no way to know when to refresh the token. The token would expire after 30 minutes, but clients couldn't detect this, leading to failed API calls and forced re-authentication.
+
+### The Fix: PR #24841
+
+I submitted [PR #24841](https://github.com/calcom/cal.com/pull/24841) to the Cal.com repository to fix this compliance issue.
+
+**What changed in the API token response:**
+
+- ✅ Added `token_type: "bearer"` to the response body to indicate the authentication scheme
+- ✅ Added `expires_in: 1800` to the response body (30 minutes in seconds) for proper expiration tracking
+- ✅ Added `Cache-Control: no-store` to the response headers to prevent token caching (security best practice)
+
+**Impact:**
+
+- Better Auth (and other OAuth clients) can now detect token expiration
+- Automatic token refresh works seamlessly in the background
+- Users no longer need to re-authenticate every 30 minutes
+- Cal.com's OAuth implementation is now RFC 6749 compliant
+- Improved security and user experience for all Cal.com OAuth integrations
+
+## 💡 Why Better Auth's Generic OAuth Plugin Delivers Excellent DX
+
+1. **Universal OAuth Support** - Integrate any OAuth 2.0 provider with the same simple configuration
+2. **OpenID Connect Discovery** - Automatically fetches endpoints from `.well-known/openid-configuration`
+3. **Auto-generated schemas** - No need to design or maintain database tables manually
+4. **Built-in callback handling** - Complete OAuth flow handled automatically
+5. **Intelligent token refresh** - Automatic background refresh when `expires_in` is provided
+6. **Type safety** - Full TypeScript support with excellent IDE autocomplete
+7. **Framework agnostic** - Works seamlessly with Next.js, SvelteKit, SolidStart, and more
+8. **ORM support** - Works with popular ORMs like Prisma, Drizzle, and Kysely out of the box
+9. **Security built-in** - PKCE support, state validation, and secure token storage
+
+The result? **What used to take days of implementation now takes minutes of configuration.**
+
+### Using the Generic OAuth Plugin in Your Application
+
+Once you've configured the plugin in your Better Auth setup, triggering the OAuth flow from your frontend is incredibly straightforward:
+
+```typescript
+import { createAuthClient } from "better-auth/client"
+
+const authClient = createAuthClient()
+
+// Trigger Cal.com OAuth login
+await authClient.signIn.oauth({
+  providerId: "calcom",
+  callbackURL: "/dashboard", // Redirect after successful login
+})
+```
+
+The plugin handles the entire OAuth flow automatically:
+
+1. **Redirects** the user to Cal.com's authorization page
+2. User **reviews and authorizes** the application's requested permissions
+3. Cal.com **redirects back** to your app with an authorization code
+4. Better Auth **exchanges** the code for access and refresh tokens
+5. Better Auth **retrieves** user information and creates/updates the account
+6. User is **authenticated** and redirected to your specified callback URL
+
+All of this complexity is abstracted away—you just call one method!
+
+## 📊 Code Comparison: Before vs After
+
+### Before (Manual OAuth Implementation):
+
+```typescript
+// Manual callback handler
+export async function GET(request: Request) {
+  const code = new URL(request.url).searchParams.get('code')
+  // Exchange code for token
+  // Store tokens in database
+  // Set up refresh logic
+  // Handle errors
+  // ... 50+ lines of code
+}
+
+// Manual refresh token logic
+async function refreshAccessToken(refreshToken: string) {
+  // Make refresh request
+  // Update database
+  // Handle expiration
+  // ... 30+ lines of code
+}
+```
+
+### After (Better Auth with Generic OAuth Plugin):
+
+With Better Auth, the entire implementation reduces to simple configuration:
+
+```typescript
+import { betterAuth } from "better-auth"
+import { genericOAuth } from "better-auth/plugins"
+
+export const auth = betterAuth({
+  // ... other config
+  plugins: [
+    genericOAuth({
+      config: [
+        {
+          providerId: "calcom",
+          authorizationUrl: "https://app.cal.com/oauth/authorize",
+          tokenUrl: "https://app.cal.com/oauth/token",
+          userInfoUrl: "https://app.cal.com/api/v2/me",
+          clientId: process.env.CALCOM_CLIENT_ID,
+          clientSecret: process.env.CALCOM_CLIENT_SECRET,
+        },
+      ],
+    }),
+  ],
+})
+
+// That's it! Callback handling, token storage, and refresh logic all handled automatically
+```
+
+## 🚀 Conclusion
+
+Better Auth transforms OAuth 2.0 integration from a tedious, error-prone, multi-day task into a simple configuration that takes minutes. By automatically handling:
+
+- OAuth callback flows
+- Token storage and management
+- Automatic token refresh
+- Database schema generation
+- Account linking
+
+...Better Auth lets you focus on building your product instead of wrestling with OAuth specifications and edge cases.
+
+### Should You Use Better Auth?
+
+If you're building a modern web application that needs OAuth integration (especially with Next.js, SvelteKit, or SolidStart), Better Auth is worth serious consideration. The developer experience is exceptional, the documentation is thorough, and the community is growing rapidly.
+
+For my Callytics project, Better Auth saved me an estimated 2-3 days of development time and eliminated dozens of potential bugs. That's a win in my book.
+
+---
+
+**Related Links:**
+
+- [Better Auth Documentation](https://www.better-auth.com/)
+- [Better Auth Generic OAuth Plugin](https://www.better-auth.com/docs/plugins/generic-oauth)
+- [My Cal.com PR #24841](https://github.com/calcom/cal.com/pull/24841) - Fix OAuth token expiration
+- [Better Auth Auto Refresh Source](https://github.com/better-auth/better-auth/blob/main/packages/core/src/oauth2/refresh-access-token.ts#L108-L123)
+
+---
+
+If you have experience with OAuth integration or thoughts on Better Auth, I'd love to hear from you!
+
+> Like my posts? Try Cal.com — powerful, open-source scheduling. [Check it out](https://cal.link/refer-cal-com)

@@ -1,8 +1,11 @@
 {
-  "calcom": 2,
+  "better-auth": 1,
+  "oauth-2.0": 1,
+  "callytics": 1,
+  "calcom": 3,
+  "nextjs": 4,
   "eslint": 1,
   "turborepo": 1,
-  "nextjs": 3,
   "sentry": 1,
   "vercel": 2,
   "oom": 1,
