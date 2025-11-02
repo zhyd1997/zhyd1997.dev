@@ -1,0 +1,153 @@
+---
+title: 'Better Auth OAuth 2.0 with Callytics: A Better DX for OAuth Integration'
+date: '2025-11-02'
+tags: ['Better Auth', 'OAuth 2.0', 'Callytics', 'Cal.com', 'Next.js']
+draft: false
+summary: 'How Better Auth simplifies OAuth 2.0 integration in Next.js, eliminating the pain of manual callback and refresh token logic—featuring my Cal.com OAuth integration in Callytics.'
+---
+
+在我之前的工作中，需要集成 Meta（包括 Facebook 和 Instagram）和 Outlook 的 OAuth 2.0，需要手写 callback、refresh token 逻辑，令人头疼。
+
+现在同样是在 Next.js 中，我在 Callytics 这个项目中集成 Cal.com OAuth 2.0 时，只需用 Better Auth 轻松搞定。
+
+## 🚨 The Old Way: Manual OAuth Pain
+
+Previously, when integrating OAuth providers like Meta (Facebook/Instagram) and Outlook, I had to:
+
+- Manually handle OAuth callbacks
+- Write custom logic for access token acquisition
+- Implement refresh token mechanisms from scratch
+- Deal with token expiration edge cases
+
+This approach was:
+
+- Time-consuming
+- Error-prone
+- Difficult to maintain
+- Required deep understanding of OAuth 2.0 specs
+
+## ✅ The Better Auth Way: Simplified OAuth in Callytics
+
+When integrating Cal.com OAuth 2.0 in my Callytics project using Better Auth, the experience was dramatically different:
+
+### Auto-Generated Prisma Schema
+
+Better Auth automatically generates the necessary Prisma schema for OAuth integration. No need to manually design database tables for:
+
+- User accounts
+- OAuth sessions
+- Access tokens
+- Refresh tokens
+
+### Automatic Callback Handling
+
+The callback endpoint is handled automatically by Better Auth—no custom route handlers needed.
+
+### Auto Refresh Access Token Mechanism
+
+Better Auth includes a sophisticated auto-refresh mechanism. Looking at the source code at [`@better-auth/better-auth/files/packages/core/src/oauth2/refresh-access-token.ts` (lines 108-123)](https://github.com/better-auth/better-auth), the library intelligently:
+
+- Monitors token expiration
+- Automatically refreshes access tokens before they expire
+- Handles refresh token rotation
+- Manages error scenarios gracefully
+
+This means **no more manual token refresh logic**—it just works!
+
+## 🔧 Fixing the Cal.com OAuth Token Expiration Issue
+
+While integrating Cal.com OAuth in Callytics, I discovered that users had to re-authenticate every 30 minutes. This was frustrating for the user experience.
+
+After investigating, I found that Cal.com's OAuth token endpoint wasn't fully RFC 6749 compliant. It wasn't returning:
+
+- `token_type` (should be "bearer")
+- `expires_in` (token expiration time in seconds)
+
+Without `expires_in`, Better Auth (and other OAuth clients) couldn't determine when to refresh the token, leading to frequent re-authentication.
+
+### The Fix: PR #24841
+
+I submitted [PR #24841](https://github.com/calcom/cal.com/pull/24841) to fix this issue:
+
+**What changed:**
+
+- Added `token_type: "bearer"` to the token response
+- Added `expires_in: 1800` (30 minutes in seconds)
+- Added proper cache headers (`Cache-Control: no-store`)
+
+**Result:**
+
+- Better Auth can now properly detect token expiration
+- Automatic token refresh works seamlessly
+- No more re-authentication every 30 minutes!
+- Full RFC 6749 compliance
+
+## 💡 Key Benefits of Better Auth
+
+**Good DX (Developer Experience)!**
+
+1. **Auto-generated schemas** - No manual database design
+2. **Built-in callback handling** - No custom route logic
+3. **Automatic token refresh** - No manual refresh logic
+4. **Type safety** - Full TypeScript support
+5. **Next.js optimized** - Works seamlessly with App Router and Server Components
+
+## 📊 Before vs After
+
+### Before (Manual OAuth):
+
+```typescript
+// Manual callback handler
+export async function GET(request: Request) {
+  const code = new URL(request.url).searchParams.get('code')
+  // Exchange code for token
+  // Store tokens in database
+  // Set up refresh logic
+  // Handle errors
+  // ... 50+ lines of code
+}
+
+// Manual refresh token logic
+async function refreshAccessToken(refreshToken: string) {
+  // Make refresh request
+  // Update database
+  // Handle expiration
+  // ... 30+ lines of code
+}
+```
+
+### After (Better Auth):
+
+```typescript
+// In better-auth config
+export const auth = betterAuth({
+  socialProviders: {
+    calcom: {
+      clientId: process.env.CALCOM_CLIENT_ID,
+      clientSecret: process.env.CALCOM_CLIENT_SECRET,
+    },
+  },
+})
+
+// That's it! Callback and refresh handled automatically
+```
+
+## 🚀 Conclusion
+
+Better Auth transforms OAuth 2.0 integration from a tedious, error-prone task into a simple configuration step. By handling callbacks, token management, and refresh logic automatically, it lets developers focus on building features instead of wrestling with OAuth specifications.
+
+If you're building a Next.js application that needs OAuth integration, I highly recommend trying Better Auth. The DX is truly better.
+
+---
+
+**Related Links:**
+
+- [Better Auth Documentation](https://www.better-auth.com/)
+- [My Cal.com PR #24841](https://github.com/calcom/cal.com/pull/24841) - Fix OAuth token expiration
+- [Better Auth Auto Refresh Source](https://github.com/better-auth/better-auth/blob/main/packages/core/src/oauth2/refresh-access-token.ts)
+
+---
+
+If you have experience with OAuth integration or thoughts on Better Auth, I'd love to hear from you!
+
+> Like my posts? Try Cal.com — powerful, open-source scheduling. [Check it out](https://cal.link/refer-cal-com)
