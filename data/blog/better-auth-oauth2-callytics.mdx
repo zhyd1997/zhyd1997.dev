@@ -111,11 +111,11 @@ Without `expires_in`, Better Auth (and other OAuth clients like NextAuth.js) had
 
 I submitted [PR #24841](https://github.com/calcom/cal.com/pull/24841) to the Cal.com repository to fix this compliance issue.
 
-**What changed:**
+**What changed in the API token response:**
 
-- ✅ Added `token_type: "bearer"` to indicate the authentication scheme
-- ✅ Added `expires_in: 1800` (30 minutes in seconds) for proper expiration tracking
-- ✅ Added `Cache-Control: no-store` header to prevent token caching (security best practice)
+- ✅ Added `token_type: "bearer"` to the response body to indicate the authentication scheme
+- ✅ Added `expires_in: 1800` to the response body (30 minutes in seconds) for proper expiration tracking
+- ✅ Added `Cache-Control: no-store` to the response headers to prevent token caching (security best practice)
 
 **Impact:**
 
