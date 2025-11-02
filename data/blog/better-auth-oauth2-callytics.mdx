@@ -45,7 +45,7 @@ The callback endpoint is handled automatically by Better Auth—no custom route 
 
 ### Auto Refresh Access Token Mechanism
 
-Better Auth includes a sophisticated auto-refresh mechanism. Looking at the source code at [`@better-auth/better-auth/files/packages/core/src/oauth2/refresh-access-token.ts` (lines 108-123)](https://github.com/better-auth/better-auth), the library intelligently:
+Better Auth includes a sophisticated auto-refresh mechanism. Looking at the source code at [`packages/core/src/oauth2/refresh-access-token.ts` (lines 108-123)](https://github.com/better-auth/better-auth/blob/main/packages/core/src/oauth2/refresh-access-token.ts#L108-L123), the library intelligently:
 
 - Monitors token expiration
 - Automatically refreshes access tokens before they expire
@@ -144,7 +144,7 @@ If you're building a Next.js application that needs OAuth integration, I highly 
 
 - [Better Auth Documentation](https://www.better-auth.com/)
 - [My Cal.com PR #24841](https://github.com/calcom/cal.com/pull/24841) - Fix OAuth token expiration
-- [Better Auth Auto Refresh Source](https://github.com/better-auth/better-auth/blob/main/packages/core/src/oauth2/refresh-access-token.ts)
+- [Better Auth Auto Refresh Source](https://github.com/better-auth/better-auth/blob/main/packages/core/src/oauth2/refresh-access-token.ts#L108-L123)
 
 ---
 
